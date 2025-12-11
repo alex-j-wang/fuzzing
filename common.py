@@ -4,7 +4,7 @@ import numpy as np
 BIGTY = np.int16    # to track overflow in calculations
 UTYPE = np.uint8    # actual type being analyzed (unsigned)
 ITYPE = np.int8     # actual type being analyzed (signed)
-N = 1000
+N = 10_000
 
 URAND_MIN = 0       # inclusive
 URAND_MAX = 256     # exclusive

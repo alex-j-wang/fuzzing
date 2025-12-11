@@ -59,43 +59,56 @@ idx = 0
 # UNSIGNED TESTING
 ll_lo, ll_hi = u_intervals()
 rr_lo, rr_hi = u_intervals()
-cases = np.stack([ll_lo, ll_hi, rr_lo, rr_hi], axis=1)
+cases = np.stack((ll_lo, ll_hi, rr_lo, rr_hi), axis=1)
 df.loc[idx:idx+N*len(u_ops)-1, inputs] = np.tile(cases, [len(u_ops), 1])
 
 unsigned = np.arange(UMIN, int(UMAX) + 1, dtype=BIGTY)
 left, right = np.meshgrid(unsigned, unsigned)
+l_lo, l_hi, r_lo, r_hi = ll_lo, ll_hi, rr_lo, rr_hi
+mat_idx = unsigned.astype(UTYPE)
 
 for numpy_op, range_op in u_ops:
     df.loc[idx:idx+N-1, approx_outputs] = range_op(ll_lo, ll_hi, rr_lo, rr_hi)
     result, over = u_eval(left, right, numpy_op)
-    for l_lo, l_hi, r_lo, r_hi in cases:
-        out_lo = result[r_lo:r_hi+1, l_lo:l_hi+1].min()
-        out_hi = result[r_lo:r_hi+1, l_lo:l_hi+1].max()
-        over_lo = over[r_lo:r_hi+1, l_lo:l_hi+1].all()
-        over_hi = over[r_lo:r_hi+1, l_lo:l_hi+1].any()
-        df.loc[idx, true_outputs] = (out_lo, out_hi, over_lo, over_hi)
-        idx += 1
-        
+    
+    row_mask = (mat_idx >= r_lo[:, None]) & (mat_idx <= r_hi[:, None])
+    col_mask = (mat_idx >= l_lo[:, None]) & (mat_idx <= l_hi[:, None])
+    mask = row_mask[:, :, None] & col_mask[:, None, :]
+
+    out_lo = np.where(mask, result[None, :, :], UMAX).min(axis=(1, 2))
+    out_hi = np.where(mask, result[None, :, :], UMIN).max(axis=(1, 2))
+    over_lo = np.where(mask, over[None, :, :], True).all(axis=(1, 2))
+    over_hi = np.where(mask, over[None, :, :], False).any(axis=(1, 2))
+
+    df.loc[idx:idx+N-1, true_outputs] = np.stack((out_lo, out_hi, over_lo, over_hi), axis=1)
+    idx += N
+    
 # SIGNED TESTING
 ll_lo, ll_hi = i_intervals()
 rr_lo, rr_hi = i_intervals()
-cases = np.stack([ll_lo, ll_hi, rr_lo, rr_hi], axis=1)
+cases = np.stack((ll_lo, ll_hi, rr_lo, rr_hi), axis=1)
 df.loc[idx:idx+N*len(i_ops)-1, inputs] = np.tile(cases, [len(i_ops), 1])
 
 signed = np.arange(IMIN, int(IMAX) + 1, dtype=BIGTY)
 left, right = np.meshgrid(signed, signed)
+l_lo, l_hi, r_lo, r_hi = (cases - IMIN).T
 
 for numpy_op, range_op in i_ops:
     df.loc[idx:idx+N-1, approx_outputs] = range_op(ll_lo, ll_hi, rr_lo, rr_hi)
     result, over = i_eval(left, right, numpy_op)
-    for l_lo, l_hi, r_lo, r_hi in cases - IMIN:
-        out_lo = result[r_lo:r_hi+1, l_lo:l_hi+1].min()
-        out_hi = result[r_lo:r_hi+1, l_lo:l_hi+1].max()
-        over_lo = over[r_lo:r_hi+1, l_lo:l_hi+1].all()
-        over_hi = over[r_lo:r_hi+1, l_lo:l_hi+1].any()
-        df.loc[idx, true_outputs] = (out_lo, out_hi, over_lo, over_hi)
-        idx += 1
 
+    row_mask = (mat_idx >= r_lo[:, None]) & (mat_idx <= r_hi[:, None])
+    col_mask = (mat_idx >= l_lo[:, None]) & (mat_idx <= l_hi[:, None])
+    mask = row_mask[:, :, None] & col_mask[:, None, :]
+
+    out_lo = np.where(mask, result[None, :, :], IMAX).min(axis=(1, 2))
+    out_hi = np.where(mask, result[None, :, :], IMIN).max(axis=(1, 2))
+    over_lo = np.where(mask, over[None, :, :], True).all(axis=(1, 2))
+    over_hi = np.where(mask, over[None, :, :], False).any(axis=(1, 2))
+
+    df.loc[idx:idx+N-1, true_outputs] = np.stack((out_lo, out_hi, over_lo, over_hi), axis=1)
+    idx += N
+    
 # DUMP RESULTS
 df.to_csv('results.csv', index=False)
 fail_mask = (df[approx_outputs[0]] > df[true_outputs[0]]) | (df[approx_outputs[1]] < df[true_outputs[1]]) | \
