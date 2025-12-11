@@ -5,17 +5,38 @@ from itertools import product
 from common import *
 import binop
 
+# OPERATOR LIST
 # (numpy_operator, range_operator)
 u_ops = [
     (np.add, binop.u_add),
     (np.subtract, binop.u_sub),
     (np.multiply, binop.u_mul),
+    (np.floor_divide, binop.u_div),
+    (np.mod, binop.u_rem),
+    (np.bitwise_and, binop.u_and),
+    (np.bitwise_or, binop.u_or),
+    (np.bitwise_xor, binop.u_xor),
+    (np.equal, binop.eq),
+    (np.not_equal, binop.ne),
+    (np.less, binop.lt),
+    (np.less_equal, binop.le),
+    (np.greater, binop.gt),
+    (np.greater_equal, binop.ge),
 ]
+
 # (numpy_operator, range_operator)
 i_ops = [
     (np.add, binop.i_add),
     (np.subtract, binop.i_sub),
     (np.multiply, binop.i_mul),
+    (np_i_div, binop.i_div),
+    (np.fmod, binop.i_rem),
+    (np.equal, binop.eq),
+    (np.not_equal, binop.ne),
+    (np.less, binop.lt),
+    (np.less_equal, binop.le),
+    (np.greater, binop.gt),
+    (np.greater_equal, binop.ge),
 ]
 
 # DATAFRAME SETUP
@@ -39,7 +60,7 @@ idx = 0
 ll_lo, ll_hi = u_intervals()
 rr_lo, rr_hi = u_intervals()
 cases = np.stack([ll_lo, ll_hi, rr_lo, rr_hi], axis=1)
-df.loc[idx:idx+N*len(u_ops)-1, inputs] = np.repeat(cases, len(u_ops), axis=0)
+df.loc[idx:idx+N*len(u_ops)-1, inputs] = np.tile(cases, [len(u_ops), 1])
 
 unsigned = np.arange(UMIN[0], int(UMAX[0]) + 1, dtype=BIGTY)
 left, right = np.meshgrid(unsigned, unsigned)
@@ -59,7 +80,7 @@ for numpy_op, range_op in u_ops:
 ll_lo, ll_hi = i_intervals()
 rr_lo, rr_hi = i_intervals()
 cases = np.stack([ll_lo, ll_hi, rr_lo, rr_hi], axis=1)
-df.loc[idx:idx+N*len(i_ops)-1, inputs] = np.repeat(cases, len(i_ops), axis=0)
+df.loc[idx:idx+N*len(i_ops)-1, inputs] = np.tile(cases, [len(i_ops), 1])
 
 signed = np.arange(IMIN[0], int(IMAX[0]) + 1, dtype=BIGTY)
 left, right = np.meshgrid(signed, signed)
@@ -77,11 +98,12 @@ for numpy_op, range_op in i_ops:
 
 # DUMP RESULTS
 df.to_csv('results.csv', index=False)
-comparison = df[approx_outputs].to_numpy() == df[true_outputs].to_numpy()
-df.loc[~comparison.all(axis=1)].to_csv('failures.csv', index=False)
+fail_mask = (df[approx_outputs[0]] > df[true_outputs[0]]) | (df[approx_outputs[1]] < df[true_outputs[1]]) | \
+            (df[approx_outputs[2]] > df[true_outputs[2]]) | (df[approx_outputs[3]] < df[true_outputs[3]])
+df.loc[fail_mask].to_csv('failures.csv', index=False)
 
 # SUMMARY STATISTICS
-summary = pd.DataFrame(index=operations[::N], columns=['Valid', '% Range Size Increase'])
+summary = pd.DataFrame(index=operations[::N], columns=['Valid', 'Actual Range Size', 'Approx Range Size', '% Increase'])
 summary.index.name = 'Operation'
 
 for op in summary.index:
@@ -103,7 +125,6 @@ for op in summary.index:
     true_size = (op_df[('True Range', 'High')] - op_df[('True Range', 'Low')] + 1).mean()
     approx_size = (op_df[('Approx Range', 'High')] - op_df[('Approx Range', 'Low')] + 1).mean()
     pct_increase = ((approx_size - true_size) / true_size) * 100
-    
-    summary.loc[op, :] = [valid, pct_increase.round(3)]
+    summary.loc[op, :] = [valid, true_size, approx_size, pct_increase.round(3)]
 
 summary.to_csv('summary.csv', index=True)
