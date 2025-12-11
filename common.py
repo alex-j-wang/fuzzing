@@ -11,19 +11,19 @@ URAND_MAX = 256     # exclusive
 IRAND_MIN = -128    # inclusive
 IRAND_MAX = 128     # exclusive
 
-UMIN = np.full(N, np.iinfo(UTYPE).min, dtype=UTYPE)
-UMAX = np.full(N, np.iinfo(UTYPE).max, dtype=UTYPE)
-IMIN = np.full(N, np.iinfo(ITYPE).min, dtype=ITYPE)
-IMAX = np.full(N, np.iinfo(ITYPE).max, dtype=ITYPE)
+UMIN = UTYPE(np.iinfo(UTYPE).min)
+UMAX = UTYPE(np.iinfo(UTYPE).max)
+IMIN = ITYPE(np.iinfo(ITYPE).min)
+IMAX = ITYPE(np.iinfo(ITYPE).max)
 
 def u_eval(ll, rr, op):
     result = op(ll, rr)
-    over = (result < UMIN[0]) | (result > UMAX[0])
+    over = (result < UMIN) | (result > UMAX)
     return result.astype(UTYPE), over
 
 def i_eval(ll, rr, op):
     result = op(ll, rr)
-    over = (result < IMIN[0]) | (result > IMAX[0])
+    over = (result < IMIN) | (result > IMAX)
     return result.astype(ITYPE), over
 
 def np_i_div(ll, rr):

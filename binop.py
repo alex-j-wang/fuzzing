@@ -164,7 +164,7 @@ def i_div(ll_lo, ll_hi, rr_lo, rr_hi):
     res4, _ = i_eval(ll_hi, rr_hi, np_i_div)
 
     zero_mask = (rr_lo <= 0) & (rr_hi >= 0)
-    over_mask = (ll_lo == IMIN[0]) & (rr_hi == -1)
+    over_mask = (ll_lo == IMIN) & (rr_hi == -1)
     lo = np.minimum(np.minimum(res1, res2), np.minimum(res3, res4))
     hi = np.maximum(np.maximum(res1, res2), np.maximum(res3, res4))
 
@@ -176,7 +176,7 @@ def i_div(ll_lo, ll_hi, rr_lo, rr_hi):
     return out
 
 def i_rem(ll_lo, ll_hi, rr_lo, rr_hi):
-    top_mask = ((rr_lo == 0) & (rr_hi == 0)) | (rr_lo == IMIN[0])
+    top_mask = ((rr_lo == 0) & (rr_hi == 0)) | (rr_lo == IMIN)
     zero = ITYPE(0)
     bound = np.maximum(np.abs(rr_lo), np.abs(rr_hi)) - 1
     min_bound = (-bound).astype(ITYPE)

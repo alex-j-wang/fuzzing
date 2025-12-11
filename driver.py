@@ -62,7 +62,7 @@ rr_lo, rr_hi = u_intervals()
 cases = np.stack([ll_lo, ll_hi, rr_lo, rr_hi], axis=1)
 df.loc[idx:idx+N*len(u_ops)-1, inputs] = np.tile(cases, [len(u_ops), 1])
 
-unsigned = np.arange(UMIN[0], int(UMAX[0]) + 1, dtype=BIGTY)
+unsigned = np.arange(UMIN, int(UMAX) + 1, dtype=BIGTY)
 left, right = np.meshgrid(unsigned, unsigned)
 
 for numpy_op, range_op in u_ops:
@@ -82,13 +82,13 @@ rr_lo, rr_hi = i_intervals()
 cases = np.stack([ll_lo, ll_hi, rr_lo, rr_hi], axis=1)
 df.loc[idx:idx+N*len(i_ops)-1, inputs] = np.tile(cases, [len(i_ops), 1])
 
-signed = np.arange(IMIN[0], int(IMAX[0]) + 1, dtype=BIGTY)
+signed = np.arange(IMIN, int(IMAX) + 1, dtype=BIGTY)
 left, right = np.meshgrid(signed, signed)
 
 for numpy_op, range_op in i_ops:
     df.loc[idx:idx+N-1, approx_outputs] = range_op(ll_lo, ll_hi, rr_lo, rr_hi)
     result, over = i_eval(left, right, numpy_op)
-    for l_lo, l_hi, r_lo, r_hi in cases - IMIN[0]:
+    for l_lo, l_hi, r_lo, r_hi in cases - IMIN:
         out_lo = result[r_lo:r_hi+1, l_lo:l_hi+1].min()
         out_hi = result[r_lo:r_hi+1, l_lo:l_hi+1].max()
         over_lo = over[r_lo:r_hi+1, l_lo:l_hi+1].all()
